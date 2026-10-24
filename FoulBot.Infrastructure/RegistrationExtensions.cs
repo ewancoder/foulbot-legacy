@@ -115,14 +115,16 @@ public static class RegistrationExtensions
     {
         var loggerBuilder = new LoggerConfiguration()
             .MinimumLevel.Information()
-            .MinimumLevel.Override("FoulBot", LogEventLevel.Verbose);
+            .MinimumLevel.Override("FoulBot", LogEventLevel.Verbose)
+            .WriteTo.Console(
+                outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}\n{Properties}\n{NewLine}{Exception}");
 
-        loggerBuilder = isDebug
-            ? loggerBuilder.WriteTo.Console(
-                outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}\n{Properties}\n{NewLine}{Exception}")
-            : loggerBuilder.WriteTo.Seq(
+        if (!isDebug)
+        {
+            // TODO: Move IP address to configuration.
+            loggerBuilder = loggerBuilder.WriteTo.Seq(
                 "http://31.146.143.167:5341", apiKey: configuration["SeqApiKey"]);
-        // TODO: Move IP address to configuration.
+        }
 
         var logger = loggerBuilder
             .Enrich.WithThreadId()
