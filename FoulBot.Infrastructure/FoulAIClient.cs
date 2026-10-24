@@ -113,13 +113,15 @@ public sealed class FoulAIClientFactory : IFoulAIClientFactory
         _vectorStoreMapping = vectorStoreMapping;
     }
 
-    public IFoulAIClient Create(string openAiModel)
+    public IFoulAIClient Create(string openAiModel, AIProvider provider = AIProvider.OpenAI, int? maxOutputTokens = null)
         => new FoulAIClient(
             _logger,
             _random,
             _vectorStoreMapping,
             _configuration,
-            openAiModel);
+            openAiModel,
+            provider,
+            maxOutputTokens);
 
     public IDocumentSearch CreateDocumentSearch(string openAiModel)
         => new FoulAIClient(
@@ -140,6 +142,8 @@ public sealed partial class FoulAIClient : IFoulAIClient, IDocumentSearch
     private readonly IVectorStoreMapping _vectorStoreMapping;
     private readonly ChatClient _client;
     private readonly AudioClient _audioClient;
+    private readonly AIProvider _provider;
+    private readonly ChatCompletionOptions _completionOptions;
 
 #pragma warning disable OPENAI001
     private readonly OpenAIFileClient _fileClient;
@@ -151,15 +155,34 @@ public sealed partial class FoulAIClient : IFoulAIClient, IDocumentSearch
         ISharedRandomGenerator random,
         IVectorStoreMapping vectorStoreMapping,
         IConfiguration configuration,
-        string openAiModel)
+        string openAiModel,
+        AIProvider provider = AIProvider.OpenAI,
+        int? maxOutputTokens = null)
     {
         _logger = logger;
         _random = random;
         _vectorStoreMapping = vectorStoreMapping;
+        _provider = provider;
+        _completionOptions = new() { MaxOutputTokenCount = maxOutputTokens };
         var key = configuration["OpenAIKey"]
             ?? throw new InvalidOperationException("Could not read OpenAIKey value.");
 
-        _client = new(model: openAiModel, key);
+        if (provider == AIProvider.Grok)
+        {
+            var grokKey = configuration["GrokApiKey"]
+                ?? throw new InvalidOperationException("Could not read GrokApiKey value.");
+
+            _client = new(
+                model: openAiModel,
+                new ApiKeyCredential(grokKey),
+                new OpenAI.OpenAIClientOptions { Endpoint = new Uri("https://api.x.ai/v1") });
+        }
+        else
+        {
+            _client = new(model: openAiModel, key);
+        }
+
+        // Audio, files, assistants and vector stores always use OpenAI.
         _audioClient = new("tts-1", key);
         _fileClient = new(key);
         _assistantClient = new(key);
@@ -193,6 +216,13 @@ public sealed partial class FoulAIClient : IFoulAIClient, IDocumentSearch
             if (message.SenderType == FoulMessageSenderType.System)
                 return new SystemChatMessage(message.Text);
 
+            // Grok might not support participant names, so we also put the name into the text.
+            if (message.SenderType == FoulMessageSenderType.User && _provider == AIProvider.Grok)
+                return new UserChatMessage($"{message.SenderName}: {message.Text}")
+                {
+                    ParticipantName = NotAllowedCharacters().Replace(message.SenderName.Unidecode(), string.Empty)
+                };
+
             if (message.SenderType == FoulMessageSenderType.User)
                 return new UserChatMessage(message.Text)
                 {
@@ -220,7 +250,7 @@ public sealed partial class FoulAIClient : IFoulAIClient, IDocumentSearch
 
             try
             {
-                var response = await _client.CompleteChatAsync(context);
+                var response = await _client.CompleteChatAsync(context, _completionOptions);
                 if (response.Value.Content.Count == 0)
                     throw new InvalidOperationException("Could not get the response.");
 

@@ -2,6 +2,12 @@
 
 namespace FoulBot.Domain;
 
+public enum AIProvider
+{
+    OpenAI,
+    Grok
+}
+
 public sealed record FoulBotConfiguration
 {
     public FoulBotConfiguration(
@@ -26,6 +32,8 @@ public sealed record FoulBotConfiguration
     public string BotName => FoulBotId.BotName;
 
     public string OpenAIModel { get; init; } = "gpt-4o-mini";
+    public AIProvider AIProvider { get; init; } = AIProvider.OpenAI;
+    public int? MaxOutputTokens { get; init; }
     public string Directive { get; }
     public IEnumerable<string> KeyWords { get; init; }
     public IEnumerable<string> Triggers { get; init; }
@@ -90,6 +98,21 @@ public sealed record FoulBotConfiguration
             OpenAIModel = "gpt-3.5-turbo",
             ContextSize = 12,
             MaxContextSizeInCharacters = 3000
+        };
+    }
+
+    /// <summary>
+    /// Uses non-reasoning Grok model: reasoning models overthink the context and write walls of text.
+    /// </summary>
+    public FoulBotConfiguration UseGrok(string model = "grok-4-1-fast-non-reasoning")
+    {
+        return this with
+        {
+            AIProvider = AIProvider.Grok,
+            OpenAIModel = model,
+            ContextSize = 8,
+            MaxContextSizeInCharacters = 3000,
+            MaxOutputTokens = 500
         };
     }
 
