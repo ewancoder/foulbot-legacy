@@ -152,8 +152,9 @@ public sealed class FoulBot : IFoulBot, IAsyncDisposable
     public async ValueTask TriggerAsync(FoulMessage message)
     {
         // TODO: Unit test.
+        // Reset to the message date (not "now") so the triggering message itself stays in the context.
         if (DateTime.UtcNow - _resetContextAt > TimeSpan.FromDays(1))
-            _resetContextAt = DateTime.UtcNow;
+            _resetContextAt = message.Date < DateTime.UtcNow ? message.Date : DateTime.UtcNow;
 
         using var _ = Logger.BeginScope();
         _logger.LogInformation("Received message by the bot: {Message}", message);

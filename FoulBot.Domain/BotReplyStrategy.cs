@@ -35,7 +35,7 @@ public sealed class BotReplyStrategy : IBotReplyStrategy
     {
         _logger.LogDebug("Getting context for replying to message");
 
-        var context = _chat.GetContextSnapshot();
+        var context = _chat.GetContextSnapshot(notEarlierThan);
 
         // Forcing a reply even when all messages have already been processed
         // or the last message is a bot message etc. We ALWAYS reply.
@@ -48,10 +48,7 @@ public sealed class BotReplyStrategy : IBotReplyStrategy
             return _contextReducer.Reduce(context);
         }
 
-        var unprocessedMessages = context
-            .SkipWhile(message => _lastProcessedMessageId != null && message.Id != _lastProcessedMessageId)
-            .Skip(_lastProcessedMessageId != null ? 1 : 0)
-            .ToList();
+        var unprocessedMessages = GetUnprocessedMessages(context);
 
         if (unprocessedMessages.Count == 0)
         {
@@ -98,11 +95,8 @@ public sealed class BotReplyStrategy : IBotReplyStrategy
             return null; // Reply to triggers only once per _minimumTimeBetweenMessages.
         }
 
-        // TODO: Handle potential situation when there is no _lastProcessedMessageId in messages.
-        var keywordMessage = context
-            .SkipWhile(message => _lastProcessedMessageId != null && message.Id != _lastProcessedMessageId)
-            .Skip(_lastProcessedMessageId != null ? 1 : 0)
-            .FirstOrDefault(_contextReducer.ShouldTrigger);
+        var keywordMessage = unprocessedMessages
+            .Find(_contextReducer.ShouldTrigger);
 
         if (keywordMessage == null)
         {
@@ -116,5 +110,23 @@ public sealed class BotReplyStrategy : IBotReplyStrategy
         _lastProcessedMessageId = context[^1].Id;
         _lastTriggeredAt = _timeProvider.GetUtcNow().UtcDateTime;
         return _contextReducer.Reduce(context);
+    }
+
+    private List<FoulMessage> GetUnprocessedMessages(IList<FoulMessage> context)
+    {
+        if (_lastProcessedMessageId == null)
+            return [.. context];
+
+        var lastProcessedIndex = context
+            .Select(message => message.Id)
+            .ToList()
+            .IndexOf(_lastProcessedMessageId);
+
+        // Last processed message has been removed from the context (cleaned up or filtered out by date).
+        // Consider only the latest message unprocessed, otherwise the bot would never reply again.
+        if (lastProcessedIndex == -1)
+            return context.Count > 0 ? [context[^1]] : [];
+
+        return context.Skip(lastProcessedIndex + 1).ToList();
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -79,7 +80,13 @@ public sealed partial class FoulMessageFactory : IFoulMessageFactory
 
     private static string GetUniqueMessageId(Message message)
     {
-        return $"{message.From?.Id}-{message.Date.Ticks}";
+        // Message date has only seconds precision, so add content hash: otherwise multiple messages
+        // sent by the same user within one second are considered duplicates and dropped.
+        // MessageId is not used because it can differ between bots for the same message.
+        var content = message.Text ?? message.Document?.FileUniqueId ?? string.Empty;
+        var contentHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(content)))[..8];
+
+        return $"{message.From?.Id}-{message.Date.Ticks}-{contentHash}";
     }
 
     private async ValueTask<string?> GetSenderNameAsync(Message message)

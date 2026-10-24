@@ -23,6 +23,9 @@ public class ChatParticipantConverter : JsonConverter<ChatParticipant?>
 
 public sealed class RedisContextStore : IContextStore
 {
+    // Only the last FoulChat.MinContextSize messages are ever loaded, keep some more just in case.
+    public const int MaxStoredMessages = 1000;
+
     private readonly JsonSerializerOptions _jsonOptions = new()
     {
         Converters =
@@ -81,6 +84,7 @@ public sealed class RedisContextStore : IContextStore
             var serialized = JsonSerializer.Serialize(message, _jsonOptions);
 
             await db.ListRightPushAsync(GetKey(chatId), [serialized]);
+            await db.ListTrimAsync(GetKey(chatId), -MaxStoredMessages, -1);
         }
         catch (Exception exception)
         {

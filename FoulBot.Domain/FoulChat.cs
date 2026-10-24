@@ -187,17 +187,21 @@ public sealed class FoulChat : IFoulChat
         // TODO: Consider passing TimeProvider here to improve test execution time.
         await Task.Delay(TimeSpan.FromSeconds(2), _timeProvider);
 
-        var consolidatedMessage = _duplicateMessageHandler.Merge(list);
-
+        FoulMessage consolidatedMessage;
         _logger.LogDebug("Entering lock for adding message to context.");
         lock (_lock)
         {
+            // Copy under the lock: late duplicates from other bots may still be added to the list.
+            consolidatedMessage = _duplicateMessageHandler.Merge(list.ToList());
             AddMessageToContext(consolidatedMessage);
             _logger.LogDebug("Added message to context.");
             _logger.LogDebug("Exiting the lock for adding message to context.");
         }
 
-        _unconsolidatedMessages.Remove(message.Id, out _);
+        // Keep the entry for a while, so duplicates arriving late (after consolidation)
+        // are still ignored instead of being processed as a brand new message.
+        _ = Task.Delay(TimeSpan.FromMinutes(1), _timeProvider)
+            .ContinueWith(_ => _unconsolidatedMessages.TryRemove(message.Id, out var _), TaskScheduler.Default);
 
         return consolidatedMessage;
     }

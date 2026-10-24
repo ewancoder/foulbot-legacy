@@ -7,6 +7,7 @@ namespace FoulBot.Domain.Features;
 public sealed class DailyCelebrationFeature : IBotFeature
 {
     // TODO: Implement stopping the feature: cancel token source.
+    private static readonly HttpClient _httpClient = new();
     private readonly IFoulAIClientFactory _foulAiClientFactory;
     private readonly IFoulBot _bot;
     private readonly string? _language;
@@ -58,20 +59,21 @@ public sealed class DailyCelebrationFeature : IBotFeature
     private async ValueTask SayWhatIsTodayAsync()
     {
         var now = DateTime.UtcNow;
-        var client = new HttpClient();
-
-        var response = await client.GetAsync($"https://nationaltoday.com/{now.ToString("MMMM").ToLowerInvariant()}-{now.Day}-holidays/");
+        var response = await _httpClient.GetAsync($"https://nationaltoday.com/{now.ToString("MMMM").ToLowerInvariant()}-{now.Day}-holidays/");
         var content = await response.Content.ReadAsStringAsync();
 
         var doc = new HtmlDocument();
         doc.LoadHtml(content);
-        var celebrations = doc.DocumentNode.SelectNodes("//*[contains(@class, 'holiday-title')]")
+        var celebrations = doc.DocumentNode.SelectNodes("//*[contains(@class, 'holiday-title')]")?
             .Select(x => x.InnerText.Trim())
-            .ToList();
+            .ToList() ?? [];
+
+        if (celebrations.Count == 0)
+            return; // Page layout changed or request failed, nothing to celebrate.
 
         var todayIs = await _foulAiClientFactory.Create("gpt-4o-mini")
             .GetCustomResponseAsync($"Today {DateTime.UtcNow.Day} of {DateTime.UtcNow.ToString("MMM")} the following things are celebrated: {string.Join(", ", celebrations)}. Pick one or couple most notable and write a short description. {(_language == null ? string.Empty : $"Use {_language} language.")}.");
 
-        await _bot.PerformRequestAsync(ChatParticipant.System, $"Congratulate everyone, describing these holidays. {(_language == null ? string.Empty : $"in {_language} language")}in {_language}! Today is {todayIs}");
+        await _bot.PerformRequestAsync(ChatParticipant.System, $"Congratulate everyone, describing these holidays{(_language == null ? string.Empty : $" in {_language} language")}! Today is {todayIs}");
     }
 }

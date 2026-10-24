@@ -26,7 +26,7 @@ public sealed class FoulBotServer
         builder.Services.AddSingleton<INamesStorage, RedisNamesStorage>();
 
         {
-            using var rootProvider = builder.BuildServiceProvider();
+            await using var rootProvider = builder.BuildServiceProvider();
             await using var scope = rootProvider.CreateAsyncScope(); // We need this, root container doesn't work with IAsyncDisposable.
             var provider = scope.ServiceProvider;
             using var localCts = new CancellationTokenSource();
@@ -35,7 +35,7 @@ public sealed class FoulBotServer
 
             var logger = provider.GetRequiredService<ILogger<FoulBotServer>>();
 
-            var appInitializer = rootProvider.GetRequiredService<ApplicationInitializer>();
+            var appInitializer = provider.GetRequiredService<ApplicationInitializer>();
             try
             {
                 await appInitializer.InitializeAsync(combinedCts.Token);

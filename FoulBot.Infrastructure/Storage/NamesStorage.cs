@@ -33,7 +33,7 @@ public sealed class RedisNamesStorage : INamesStorage
         _names.AddOrUpdate(nickname, name, (_, _) => name);
 
         var db = _redis.GetDatabase();
-        var namesString = string.Join(',', _names.Select(x => $"{x.Key}={x.Value}"));
+        var namesString = JsonSerializer.Serialize(_names);
         await db.StringSetAsync("hard_names", namesString);
     }
 
@@ -49,13 +49,8 @@ public sealed class RedisNamesStorage : INamesStorage
                 return;
 
             var db = _redis.GetDatabase();
-            var namesString = await db.StringGetAsync("hard_names");
-            if (string.IsNullOrWhiteSpace(namesString))
-                namesString = "empty=empty";
-            var names = namesString.ToString()
-                .Split(',')
-                .Select(keyValue => new KeyValuePair<string, string>(keyValue.Split('=')[0], keyValue.Split('=')[1]));
-            _names = new ConcurrentDictionary<string, string>(names);
+            var namesString = (await db.StringGetAsync("hard_names")).ToString();
+            _names = new ConcurrentDictionary<string, string>(ParseNames(namesString));
 
             _initialized = true;
         }
@@ -63,5 +58,22 @@ public sealed class RedisNamesStorage : INamesStorage
         {
             _lock.Release();
         }
+    }
+
+    private static IEnumerable<KeyValuePair<string, string>> ParseNames(string? namesString)
+    {
+        if (string.IsNullOrWhiteSpace(namesString))
+            return [];
+
+        if (namesString.StartsWith('{'))
+            return JsonSerializer.Deserialize<Dictionary<string, string>>(namesString) ?? [];
+
+        // Legacy "nickname=name,nickname=name" format. Skip malformed entries instead of failing.
+        return namesString
+            .Split(',')
+            .Select(keyValue => keyValue.Split('=', 2))
+            .Where(parts => parts.Length == 2)
+            .DistinctBy(parts => parts[0])
+            .Select(parts => new KeyValuePair<string, string>(parts[0], parts[1]));
     }
 }

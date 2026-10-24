@@ -44,22 +44,28 @@ public sealed class DiscordBotConnectionHandler : IBotConnectionHandler
         await client.LoginAsync(TokenType.Bot, configuration.ConnectionString);
         await client.StartAsync();
 
-        async Task DiscordMessageReceived(SocketMessage message)
+        Task DiscordMessageReceived(SocketMessage message)
         {
-            using var _ = Logger.BeginScope();
-
-            // TODO: Log more data.
-            _logger.LogDebug("Received message {Message}.", message.Id);
-
-            try
+            // Do not block the gateway task: handling a message includes waiting for duplicates and AI calls.
+            _ = Task.Run(async () =>
             {
-                // TODO: pass cancellation token.
-                await HandleUpdateAsync(new(configuration.Configuration.BotId, configuration.Configuration.BotName), message, chat => _botFactory.JoinBotToChatAsync(botMessenger!, chat, configuration.Configuration), cancellationToken: default);
-            }
-            catch (Exception exception)
-            {
-                _logger.LogError(exception, "Failed to handle update {Message}.", message.Id);
-            }
+                using var _ = Logger.BeginScope();
+
+                // TODO: Log more data.
+                _logger.LogDebug("Received message {Message}.", message.Id);
+
+                try
+                {
+                    // TODO: pass cancellation token.
+                    await HandleUpdateAsync(new(configuration.Configuration.BotId, configuration.Configuration.BotName), message, chat => _botFactory.JoinBotToChatAsync(botMessenger!, chat, configuration.Configuration), cancellationToken: default);
+                }
+                catch (Exception exception)
+                {
+                    _logger.LogError(exception, "Failed to handle update {Message}.", message.Id);
+                }
+            }, CancellationToken.None);
+
+            return Task.CompletedTask;
         }
 
         static async Task LogAsync(LogMessage message)

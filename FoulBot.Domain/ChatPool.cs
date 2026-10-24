@@ -278,17 +278,26 @@ public sealed class ChatPool : IAsyncDisposable
             };
             _logger.LogDebug("Subscribed to bot shutdown event, so we can dispose of bot when needed");
 
-            if (invitedBy != null)
-            {
-                _logger.LogDebug("Greeting people in chat who invited the bot");
-                await bot.GreetEveryoneAsync(new(invitedBy, "unknown"));
-            }
-
-            if (!_bots.TryAdd($"{foulBotId.BotId}{chat.ChatId.Value}", bot))
+            if (!_bots.TryAdd(key, bot))
             {
                 _logger.LogError("This should never happen. Bot was not added to the dictionary");
                 await bot.GracefulShutdownAsync();
                 throw new InvalidOperationException("Could not add bot to chat.");
+            }
+
+            // Greet only after the bot is registered, so a failed greeting doesn't leave
+            // a subscribed but unregistered bot behind (which would cause duplicate bots).
+            if (invitedBy != null)
+            {
+                _logger.LogDebug("Greeting people in chat who invited the bot");
+                try
+                {
+                    await bot.GreetEveryoneAsync(new(invitedBy, "unknown"));
+                }
+                catch (Exception exception)
+                {
+                    _logger.LogError(exception, "Failed to greet people in chat");
+                }
             }
 
             _logger.LogInformation("Adding bot to chat operation was performed");

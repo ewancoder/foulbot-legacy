@@ -95,6 +95,46 @@ public class BotReplyStrategyAndContextReducerTests : Testing<BotReplyStrategy>
         Assert.Null(result);
     }
 
+    [Fact]
+    public void ShouldPassNotEarlierThan_ToContextSnapshot()
+    {
+        var notEarlierThan = Fixture.Create<DateTime>();
+        var context = Fixture.CreateMany<FoulMessage>().ToList();
+        _chat.Setup(x => x.GetContextSnapshot(notEarlierThan))
+            .Returns(context);
+        _chat.Setup(x => x.IsPrivateChat)
+            .Returns(true);
+
+        var sut = Fixture.Create<BotReplyStrategy>();
+
+        var result = sut.GetContextForReplying(context[^1], notEarlierThan);
+        Assert.NotNull(result);
+        _chat.Verify(x => x.GetContextSnapshot(notEarlierThan));
+    }
+
+    // When last processed message is cleaned up from the context, bot should not become deaf.
+    [Fact]
+    public void ShouldProduceResults_WhenLastProcessedMessageIsNoLongerInContext()
+    {
+        var context = ConfigureWithContext();
+
+        _chat.Setup(x => x.IsPrivateChat)
+            .Returns(true);
+
+        var sut = Fixture.Create<BotReplyStrategy>();
+
+        var result = sut.GetContextForReplying(context[^1]);
+        Assert.NotNull(result);
+
+        // Context has been cleaned up, last processed message is gone.
+        context.Clear();
+        var message = Fixture.Create<FoulMessage>();
+        context.Add(message);
+
+        result = sut.GetContextForReplying(message);
+        Assert.NotNull(result);
+    }
+
     // Always produce results - even when messages are processed - when forced.
     [Fact]
     public void ShouldAlwaysProduceResults_EvenWhenMessageHasAlreadyBeenHandled_WhenForced()

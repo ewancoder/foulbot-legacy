@@ -321,14 +321,17 @@ public sealed partial class FoulAIClient : IFoulAIClient, IDocumentSearch
             }
         }
 
-        var operation = await _vectorClient.CreateVectorStoreAsync(true, new VectorStoreCreationOptions
+        if (vectorStore is null)
         {
-            Name = $"foulbot_{storeName}",
-            ExpirationPolicy = new VectorStoreExpirationPolicy(VectorStoreExpirationAnchor.LastActiveAt, 30)
-        });
-        vectorStore ??= await operation.GetVectorStoreAsync();
+            var operation = await _vectorClient.CreateVectorStoreAsync(true, new VectorStoreCreationOptions
+            {
+                Name = $"foulbot_{storeName}",
+                ExpirationPolicy = new VectorStoreExpirationPolicy(VectorStoreExpirationAnchor.LastActiveAt, 30)
+            });
+            vectorStore = await operation.GetVectorStoreAsync();
 
-        await _vectorStoreMapping.CreateMappingAsync(storeName, vectorStore.Id);
+            await _vectorStoreMapping.CreateMappingAsync(storeName, vectorStore.Id);
+        }
 
         try
         {

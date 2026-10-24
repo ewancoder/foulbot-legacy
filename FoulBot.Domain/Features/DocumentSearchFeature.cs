@@ -104,7 +104,7 @@ public sealed class DocumentSearchFeature : BotFeature
                         var funText = await _aiClient.GetCustomResponseAsync($"{_config.Directive}. Imagine you have produced the following text, update it based on your character but keep the relevant facts intact: \"{result.Text}\"");
 
                         await _botMessenger.SendTextMessageAsync(_chat.ChatId, funText);
-                        _chat.AddMessage(CreateFoulMessageFromSearchResponse(result.Text));
+                        _chat.AddMessage(CreateFoulMessageFromSearchResponse(funText));
                     }
                 }
 

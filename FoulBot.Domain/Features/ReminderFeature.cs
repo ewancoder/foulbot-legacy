@@ -15,7 +15,8 @@ public sealed record Reminder(
 public sealed class ReminderFeature : BotFeature, IAsyncDisposable
 {
     // TODO: Consider moving out "markdown" logic to telegram-specific dependencies.
-    public const string EscapedCharacters = "-_()";
+    // Only escape characters that the messenger does not escape itself, otherwise they are double-escaped.
+    public const string EscapedCharacters = "_";
     public static readonly TimeSpan CheckInterval = TimeSpan.FromSeconds(10);
     private readonly ILogger<ReminderFeature> _logger;
     private readonly TimeProvider _timeProvider;

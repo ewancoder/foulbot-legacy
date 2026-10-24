@@ -377,8 +377,12 @@ public class ReminderFeatureTests : Testing<ReminderFeature>
         {
             // TODO: Verify escaping reminder.Request too. Or maybe later, when I move this to Telegram.
             _bot.Verify(x => x.SendRawAsync(It.Is<string>(
-                t => t.Contains(reminder.Id.Replace("-", @"\-")))));
+                t => t.Contains(reminder.Id))));
         }
+
+        // Messenger escapes the rest of markdown characters itself.
+        _bot.Verify(x => x.SendRawAsync(It.Is<string>(
+            t => t.Contains(@"\_some -signs (for )escaping"))));
     }
 
     private async Task AssertProcessStopsWhenNoReminders(int times = 2)
