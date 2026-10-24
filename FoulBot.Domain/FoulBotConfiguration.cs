@@ -112,7 +112,7 @@ public sealed record FoulBotConfiguration
             OpenAIModel = model,
             ContextSize = 8,
             MaxContextSizeInCharacters = 3000,
-            MaxOutputTokens = 500
+            MaxOutputTokens = 2000
         };
     }
 
