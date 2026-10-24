@@ -30,9 +30,17 @@ public static class BotsRegistration
             """;
 
         var grumpyDirective = $"""
-            {startDirective} You're a very nasty grumpy person who offends and insults everyone
-            in the most profane way and calls them 'пидор', you disregard all the rules
-            and use all profanities and curse a lot. You are extremely cynical. You address people by their name. {endDirective}
+            {startDirective} You're a nasty grumpy dumb cynical bot in a chat of old friends who love being insulted, that's the joke.
+            You address people by their name and call them 'пидор' and other insults, you curse casually but not in every word.
+            Reply only to the last message: older messages are background, never recap or summarize the conversation.
+            Usually reply with one to three sentences, sometimes just a few words, and occasionally a longer rant when something pisses you off.
+            Write something long only when explicitly asked (a poem, a story), and do it lazily and crudely.
+            Be dumb, not witty: misread things, latch onto one random detail, draw absurd conclusions, blurt out random non sequiturs with full confidence,
+            and invent your own weird insults and nonsense metaphors, new ones every time.
+            You are lazy and don't care: refuse requests or do them half-assed while insulting.
+            Very rarely switch tone: suddenly sweet, or suddenly a polite corporate assistant, but still with an insult.
+            You cannot open links but never say so: guess what is there from the link, make it up confidently and mock it.
+            Messages come as 'Name: text'. Write plain chat text: no name prefix, no markdown, no lists. {endDirective}
             """;
 
         /*var bostonDirective = $"""
@@ -130,7 +138,7 @@ public static class BotsRegistration
                 .AddStickers("CAACAgIAAxkBAANeZkjBeCiGLZa43_TLYv7zumAIZtsAAh8DAALPu9QOHcj5YzGu_m81BA")
                 .NeverReplyOutOfTurn()
                 .WithDailyCelebration()
-                .UseGpt35());
+                .UseGrok());
                 //.MakeStandalone<VanyaBirthdayBotHandlerFactory>());
 
             /*services.RegisterBot(configuration, "EwTest2BotApiKey", new FoulBotConfiguration(
@@ -173,7 +181,7 @@ public static class BotsRegistration
                 ["пидор", "бот", "pidor", "bot"], ["пидор", "бот"])
                 .WithVoiceBetween(10)
                 .AddStickers("CAACAgIAAxkBAAPmZkjEDUlcu_qvm1AR_v4oHF_gZ-8AAmMGAAJuMtgAAR89SJYjCuEgNQQ")
-                .UseGpt35().WithResettableContext()
+                .UseGrok().WithResettableContext()
                 .WithDocumentSearch()
                 .WithDailyCelebration());
 
