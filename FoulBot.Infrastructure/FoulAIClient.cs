@@ -238,7 +238,16 @@ public sealed partial class FoulAIClient : IFoulAIClient, IDocumentSearch
             throw new InvalidOperationException("Could not determine the type.");
         }).ToList();
 
-        return await GetTextResponseWithRetriesAsync(aiContext);
+        var response = await GetTextResponseWithRetriesAsync(aiContext);
+        if (_provider != AIProvider.Grok)
+            return response;
+
+        // Grok sometimes mimics the "Name: text" format of the context, strip the prefix.
+        var prefix = cleanContext
+            .Select(message => $"{message.SenderName}:")
+            .FirstOrDefault(prefix => response.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
+
+        return prefix == null ? response : response[prefix.Length..].TrimStart();
     }
 
     private async ValueTask<string> GetTextResponseWithRetriesAsync(IEnumerable<ChatMessage> context)
