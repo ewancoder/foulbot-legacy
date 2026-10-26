@@ -71,6 +71,18 @@ public class BotReplyStrategyAndContextReducerTests : Testing<BotReplyStrategy>
     }
 
     [Fact]
+    public void Reduce_ShouldAddCurrentMood()
+    {
+        var config = ConfigureBot().WithMoods("the only mood");
+        var sut = new ContextReducer(config);
+
+        var result = sut.Reduce(Fixture.CreateMany<FoulMessage>().ToList());
+
+        Assert.Equal(FoulMessageSenderType.System, result[^1].SenderType);
+        Assert.Contains("the only mood", result[^1].Text);
+    }
+
+    [Fact]
     public void Reduce_ShouldNotAddStyleHint_WhenNoHintsConfigured()
     {
         var config = ConfigureBot();

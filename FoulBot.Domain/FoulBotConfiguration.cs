@@ -36,6 +36,7 @@ public sealed record FoulBotConfiguration
     public int? MaxOutputTokens { get; init; }
     public float? Temperature { get; init; }
     public IReadOnlyList<string> ReplyStyleHints { get; private init; } = [];
+    public IReadOnlyList<string> Moods { get; private init; } = [];
     public string Directive { get; }
     public IEnumerable<string> KeyWords { get; init; }
     public IEnumerable<string> Triggers { get; init; }
@@ -127,6 +128,17 @@ public sealed record FoulBotConfiguration
         return this with
         {
             ReplyStyleHints = hints
+        };
+    }
+
+    /// <summary>
+    /// The mood changes every <see cref="ContextReducer.MoodPeriod"/>, so the bot behaves differently at different times.
+    /// </summary>
+    public FoulBotConfiguration WithMoods(params string[] moods)
+    {
+        return this with
+        {
+            Moods = moods
         };
     }
 

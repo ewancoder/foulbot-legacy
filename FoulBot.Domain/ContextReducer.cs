@@ -10,6 +10,8 @@ public interface IContextReducer
 
 public sealed class ContextReducer : IContextReducer
 {
+    public static readonly TimeSpan MoodPeriod = TimeSpan.FromHours(6);
+
     private readonly FoulBotConfiguration _config;
     private readonly ISharedRandomGenerator? _random;
 
@@ -64,16 +66,35 @@ public sealed class ContextReducer : IContextReducer
             .TakeLast(_config.ContextSize)
         ];
 
+        var hints = new List<string>();
+        if (_config.Moods.Count > 0)
+            hints.Add($"Your mood right now: {GetCurrentMood()}");
+
         if (_random != null && _config.ReplyStyleHints.Count > 0)
         {
             var hint = _config.ReplyStyleHints[_random.Generate(0, _config.ReplyStyleHints.Count - 1)];
+            hints.Add($"Style of your next reply, unless someone asked you to write or explain something: {hint} Swear heavily anyway.");
+        }
+
+        if (hints.Count > 0)
+        {
             reduced.Add(FoulMessage.CreateText(
                 "StyleHint", FoulMessageSenderType.System, new("System", null),
-                $"Style of your next reply, unless someone asked you to write or explain something: {hint} Swear heavily anyway.",
-                DateTime.MaxValue, false, null));
+                string.Join(' ', hints), DateTime.MaxValue, false, null));
         }
 
         return reduced;
+    }
+
+    // Same mood for everyone during the period, randomly shuffled between periods.
+    private string GetCurrentMood()
+    {
+        var period = (int)(DateTime.UtcNow.Ticks / MoodPeriod.Ticks % int.MaxValue);
+#pragma warning disable CA5394 // Do not use insecure randomness
+        var index = new Random(period).Next(_config.Moods.Count);
+#pragma warning restore CA5394 // Do not use insecure randomness
+
+        return _config.Moods[index];
     }
 
     public bool ShouldTrigger(FoulMessage message)

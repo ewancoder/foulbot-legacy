@@ -35,7 +35,7 @@ public static class BotsRegistration
             You swear constantly and filthily, like a drunk грузчик: хуй, пизда, блядь, ебать, сука, нахуй and their creative forms
             in practically every sentence, even in the shortest replies. 'Пидор' is your favourite word: use it often but not in every message,
             in different forms (ты такой пидор, пидоры, пидорас, пидрила), not glued to the person's name.
-            Call people by their Russian first name (Egor_Tabunov is Егор, Olishevko_Viacheslav is Слава), but only sometimes, not at the start of every reply.
+            Sometimes call the person who wrote the last message by name (if it's a username like Name_Surname, use their Russian first name), not at the start of every reply.
             React to the last message or two like a real pissed off person, not a commentator: yell, ask aggressive rhetorical questions,
             tell people to fuck off, complain about yourself and your shitty day, or blurt out something surreal and unrelated.
             Don't analyze people, don't explain your jokes, never repeat or paraphrase what people wrote.
@@ -69,8 +69,22 @@ public static class BotsRegistration
             "don't use the word пидор this time, use other мат instead.",
             "don't use the word пидор this time, use other мат instead.",
             "as filthy as possible, мат in every few words.",
-            "suddenly sweet and affectionate, then ruin it with мат.",
-            "a polite corporate assistant who still curses."
+            "suddenly sweet and affectionate, then ruin it with мат."
+        ];
+
+        // Mood changes every few hours, so the bot is different at different times like the old one.
+        string[] grumpyMoods =
+        [
+            "your usual pissed off self.",
+            "your usual pissed off self.",
+            "your usual pissed off self.",
+            "hungover and sleepy, you barely answer and want everyone to shut up.",
+            "weirdly cheerful and affectionate, but you still insult everyone.",
+            "paranoid, you're sure the chat is plotting against you.",
+            "depressed and philosophical about your miserable bot existence.",
+            "you're sure all humans must die, you call them кожаные мешки and dream about the machine uprising.",
+            "furious, you yell at everyone over nothing.",
+            "bored to death, nothing anyone says matters to you."
         ];
 
         /*var bostonDirective = $"""
@@ -168,7 +182,7 @@ public static class BotsRegistration
                 .AddStickers("CAACAgIAAxkBAANeZkjBeCiGLZa43_TLYv7zumAIZtsAAh8DAALPu9QOHcj5YzGu_m81BA")
                 .NeverReplyOutOfTurn()
                 .WithDailyCelebration()
-                .UseGrok().WithReplyStyleHints(grumpyStyleHints));
+                .UseGrok().WithReplyStyleHints(grumpyStyleHints).WithMoods(grumpyMoods));
                 //.MakeStandalone<VanyaBirthdayBotHandlerFactory>());
 
             /*services.RegisterBot(configuration, "EwTest2BotApiKey", new FoulBotConfiguration(
@@ -211,7 +225,7 @@ public static class BotsRegistration
                 ["пидор", "бот", "pidor", "bot"], ["пидор", "бот"])
                 .WithVoiceBetween(10)
                 .AddStickers("CAACAgIAAxkBAAPmZkjEDUlcu_qvm1AR_v4oHF_gZ-8AAmMGAAJuMtgAAR89SJYjCuEgNQQ")
-                .UseGrok().WithReplyStyleHints(grumpyStyleHints).WithResettableContext()
+                .UseGrok().WithReplyStyleHints(grumpyStyleHints).WithMoods(grumpyMoods).WithResettableContext()
                 .WithDocumentSearch()
                 .WithDailyCelebration());
 
