@@ -2,7 +2,7 @@
 
 public interface IFoulAIClientFactory
 {
-    IFoulAIClient Create(string openAiModel, AIProvider provider = AIProvider.OpenAI, int? maxOutputTokens = null);
+    IFoulAIClient Create(string openAiModel, AIProvider provider = AIProvider.OpenAI, int? maxOutputTokens = null, float? temperature = null);
 }
 
 public interface IFoulAIClient

@@ -56,6 +56,31 @@ public class BotReplyStrategyAndContextReducerTests : Testing<BotReplyStrategy>
             .Create();
     }
 
+    [Fact]
+    public void Reduce_ShouldAddRandomStyleHint_AsLastSystemMessage()
+    {
+        var config = ConfigureBot().WithReplyStyleHints("first hint", "second hint");
+        var random = new Mock<ISharedRandomGenerator>();
+        random.Setup(x => x.Generate(0, 1)).Returns(1);
+        var sut = new ContextReducer(config, random.Object);
+
+        var result = sut.Reduce(Fixture.CreateMany<FoulMessage>().ToList());
+
+        Assert.Equal(FoulMessageSenderType.System, result[^1].SenderType);
+        Assert.Contains("second hint", result[^1].Text);
+    }
+
+    [Fact]
+    public void Reduce_ShouldNotAddStyleHint_WhenNoHintsConfigured()
+    {
+        var config = ConfigureBot();
+        var sut = new ContextReducer(config, Fixture.Create<ISharedRandomGenerator>());
+
+        var result = sut.Reduce(Fixture.CreateMany<FoulMessage>().ToList());
+
+        Assert.Single(result, message => message.SenderType == FoulMessageSenderType.System);
+    }
+
     // Always send messages to private chats. But only unprocessed ones.
     [Fact]
     public void ShouldAlwaysProduceResults_WhenChatIsPrivate()

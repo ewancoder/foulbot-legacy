@@ -11,10 +11,12 @@ public interface IContextReducer
 public sealed class ContextReducer : IContextReducer
 {
     private readonly FoulBotConfiguration _config;
+    private readonly ISharedRandomGenerator? _random;
 
-    public ContextReducer(FoulBotConfiguration config)
+    public ContextReducer(FoulBotConfiguration config, ISharedRandomGenerator? random = null)
     {
         _config = config;
+        _random = random;
     }
 
     public IList<FoulMessage> Reduce(IList<FoulMessage> context)
@@ -53,7 +55,7 @@ public sealed class ContextReducer : IContextReducer
             }
         }
 
-        return
+        List<FoulMessage> reduced =
         [
             FoulMessage.CreateText("Directive", FoulMessageSenderType.System, new("System", null), _config.Directive, DateTime.MinValue, false, null),
             .. onlyAddressedToMe.Concat(allMessages)
@@ -61,6 +63,17 @@ public sealed class ContextReducer : IContextReducer
             .OrderBy(x => x.Date)
             .TakeLast(_config.ContextSize)
         ];
+
+        if (_random != null && _config.ReplyStyleHints.Count > 0)
+        {
+            var hint = _config.ReplyStyleHints[_random.Generate(0, _config.ReplyStyleHints.Count - 1)];
+            reduced.Add(FoulMessage.CreateText(
+                "StyleHint", FoulMessageSenderType.System, new("System", null),
+                $"Style of your next reply, unless someone asked you to write or explain something: {hint} Swear heavily anyway.",
+                DateTime.MaxValue, false, null));
+        }
+
+        return reduced;
     }
 
     public bool ShouldTrigger(FoulMessage message)

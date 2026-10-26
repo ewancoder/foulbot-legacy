@@ -73,12 +73,12 @@ public sealed class FoulBotFactory : IFoulBotFactory
 
         var cts = new CancellationTokenSource();
         var messenger = new ChatScopedBotMessenger(botMessenger, chat.ChatId);
-        var contextReducer = new ContextReducer(config);
+        var contextReducer = new ContextReducer(config, _random);
         var replyStrategy = new BotReplyStrategy(
             _botReplyStrategyLogger, contextReducer, _timeProvider, chat, config);
         var replyImitatorFactory = new ReplyImitatorFactory(
             _typingImitatorLogger, botMessenger, _timeProvider, _random);
-        var aiClient = _aiClientFactory.Create(config.OpenAIModel, config.AIProvider, config.MaxOutputTokens);
+        var aiClient = _aiClientFactory.Create(config.OpenAIModel, config.AIProvider, config.MaxOutputTokens, config.Temperature);
         var documentSearch = (IDocumentSearch)aiClient;
         IMessageFilter messageFilter = config.IsAssistant
             ? new AssistantMessageFilter()

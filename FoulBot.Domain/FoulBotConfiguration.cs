@@ -34,6 +34,8 @@ public sealed record FoulBotConfiguration
     public string OpenAIModel { get; init; } = "gpt-4o-mini";
     public AIProvider AIProvider { get; init; } = AIProvider.OpenAI;
     public int? MaxOutputTokens { get; init; }
+    public float? Temperature { get; init; }
+    public IReadOnlyList<string> ReplyStyleHints { get; private init; } = [];
     public string Directive { get; }
     public IEnumerable<string> KeyWords { get; init; }
     public IEnumerable<string> Triggers { get; init; }
@@ -112,7 +114,19 @@ public sealed record FoulBotConfiguration
             OpenAIModel = model,
             ContextSize = 8,
             MaxContextSizeInCharacters = 3000,
-            MaxOutputTokens = 2000
+            MaxOutputTokens = 2000,
+            Temperature = 1.4f
+        };
+    }
+
+    /// <summary>
+    /// One random hint is added to every reply, so the bot doesn't fall into the same reply pattern.
+    /// </summary>
+    public FoulBotConfiguration WithReplyStyleHints(params string[] hints)
+    {
+        return this with
+        {
+            ReplyStyleHints = hints
         };
     }
 

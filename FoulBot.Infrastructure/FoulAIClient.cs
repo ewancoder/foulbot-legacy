@@ -113,7 +113,7 @@ public sealed class FoulAIClientFactory : IFoulAIClientFactory
         _vectorStoreMapping = vectorStoreMapping;
     }
 
-    public IFoulAIClient Create(string openAiModel, AIProvider provider = AIProvider.OpenAI, int? maxOutputTokens = null)
+    public IFoulAIClient Create(string openAiModel, AIProvider provider = AIProvider.OpenAI, int? maxOutputTokens = null, float? temperature = null)
         => new FoulAIClient(
             _logger,
             _random,
@@ -121,7 +121,8 @@ public sealed class FoulAIClientFactory : IFoulAIClientFactory
             _configuration,
             openAiModel,
             provider,
-            maxOutputTokens);
+            maxOutputTokens,
+            temperature);
 
     public IDocumentSearch CreateDocumentSearch(string openAiModel)
         => new FoulAIClient(
@@ -157,13 +158,14 @@ public sealed partial class FoulAIClient : IFoulAIClient, IDocumentSearch
         IConfiguration configuration,
         string openAiModel,
         AIProvider provider = AIProvider.OpenAI,
-        int? maxOutputTokens = null)
+        int? maxOutputTokens = null,
+        float? temperature = null)
     {
         _logger = logger;
         _random = random;
         _vectorStoreMapping = vectorStoreMapping;
         _provider = provider;
-        _completionOptions = new() { MaxOutputTokenCount = maxOutputTokens };
+        _completionOptions = new() { MaxOutputTokenCount = maxOutputTokens, Temperature = temperature };
         var key = configuration["OpenAIKey"]
             ?? throw new InvalidOperationException("Could not read OpenAIKey value.");
 
