@@ -35,6 +35,7 @@ public sealed class DocumentSearchFeature : BotFeature
     private readonly IFoulChat _chat;
     private readonly string _storeName;
     private readonly FoulBotConfiguration _config;
+    private readonly BotPersonality _personality;
 
     public DocumentSearchFeature(
         IDocumentSearch documentSearch,
@@ -43,7 +44,8 @@ public sealed class DocumentSearchFeature : BotFeature
         IBotMessenger botMessenger,
         IFoulAIClient aiClient,
         IFoulChat chat,
-        FoulBotConfiguration config)
+        FoulBotConfiguration config,
+        BotPersonality? personality = null)
     {
         _documentSearch = documentSearch;
         _contextReducer = contextReducer;
@@ -53,6 +55,7 @@ public sealed class DocumentSearchFeature : BotFeature
         _chat = chat;
         _storeName = $"{config.DocumentSearchStoreName!}__{chat.ChatId}";
         _config = config;
+        _personality = personality ?? new(config);
     }
 
     public override async ValueTask<bool> ProcessMessageAsync(FoulMessage message)
@@ -101,7 +104,7 @@ public sealed class DocumentSearchFeature : BotFeature
                     }
                     else
                     {
-                        var funText = await _aiClient.GetCustomResponseAsync($"{_config.Directive}. Imagine you have produced the following text, update it based on your character but keep the relevant facts intact: \"{result.Text}\"");
+                        var funText = await _aiClient.GetCustomResponseAsync($"{_personality.Directive}. Imagine you have produced the following text, update it based on your character but keep the relevant facts intact: \"{result.Text}\"");
 
                         await _botMessenger.SendTextMessageAsync(_chat.ChatId, funText);
                         _chat.AddMessage(CreateFoulMessageFromSearchResponse(funText));

@@ -28,6 +28,7 @@ public sealed class FoulBotFactory : IFoulBotFactory
     private readonly ILogger<TalkYourselfFeature> _talkYourselfFeatureLogger;
     private readonly IServiceProvider _serviceProvider;
     private readonly INamesStorage _namesStorage;
+    private readonly IBotModeStore _botModeStore;
 
     public FoulBotFactory(
         TimeProvider timeProvider,
@@ -42,7 +43,8 @@ public sealed class FoulBotFactory : IFoulBotFactory
         ILogger<BotReplyStrategy> botReplyStrategyLogger,
         ILogger<TalkYourselfFeature> talkYourselfFeatureLogger,
         IServiceProvider serviceProvider,
-        INamesStorage namesStorage)
+        INamesStorage namesStorage,
+        IBotModeStore botModeStore)
     {
         _timeProvider = timeProvider;
         _delayStrategy = botDelayStrategy;
@@ -57,6 +59,7 @@ public sealed class FoulBotFactory : IFoulBotFactory
         _talkYourselfFeatureLogger = talkYourselfFeatureLogger;
         _serviceProvider = serviceProvider;
         _namesStorage = namesStorage;
+        _botModeStore = botModeStore;
     }
 
     /// <summary>
@@ -73,7 +76,10 @@ public sealed class FoulBotFactory : IFoulBotFactory
 
         var cts = new CancellationTokenSource();
         var messenger = new ChatScopedBotMessenger(botMessenger, chat.ChatId);
-        var contextReducer = new ContextReducer(config, _random);
+        var personality = new BotPersonality(
+            config,
+            config.SpecialMode != null && await _botModeStore.IsSpecialModeOnAsync(config.FoulBotId, chat.ChatId));
+        var contextReducer = new ContextReducer(config, _random, personality);
         var replyStrategy = new BotReplyStrategy(
             _botReplyStrategyLogger, contextReducer, _timeProvider, chat, config);
         var replyImitatorFactory = new ReplyImitatorFactory(
@@ -97,7 +103,8 @@ public sealed class FoulBotFactory : IFoulBotFactory
             messageFilter,
             chat,
             cts,
-            config);
+            config,
+            personality);
 
         if (config.IsStandalone)
         {
@@ -127,6 +134,10 @@ public sealed class FoulBotFactory : IFoulBotFactory
             _allBots,
             aiClient);
 
+        // First, so the command is not handled by other features.
+        if (config.SpecialMode != null)
+            bot.AddFeature(new SpecialModeFeature(personality, _botModeStore, bot, config, chat.ChatId));
+
         bot.AddFeature(remindersFeature);
         bot.AddFeature(advertisementFeature);
 
@@ -151,7 +162,8 @@ public sealed class FoulBotFactory : IFoulBotFactory
                 botMessenger,
                 aiClient,
                 chat,
-                config);
+                config,
+                personality);
 
             bot.AddFeature(feature);
         }

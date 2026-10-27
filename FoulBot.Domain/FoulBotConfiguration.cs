@@ -8,6 +8,15 @@ public enum AIProvider
     Grok
 }
 
+/// <summary>
+/// Alternative personality of the bot, switched on and off by writing the command to the chat.
+/// </summary>
+public sealed record BotSpecialMode(
+    string Command,
+    string Directive,
+    IReadOnlyList<string> ReplyStyleHints,
+    IReadOnlyList<string> Moods);
+
 public sealed record FoulBotConfiguration
 {
     public FoulBotConfiguration(
@@ -37,6 +46,7 @@ public sealed record FoulBotConfiguration
     public float? Temperature { get; init; }
     public IReadOnlyList<string> ReplyStyleHints { get; private init; } = [];
     public IReadOnlyList<string> Moods { get; private init; } = [];
+    public BotSpecialMode? SpecialMode { get; private init; }
     public string Directive { get; }
     public IEnumerable<string> KeyWords { get; init; }
     public IEnumerable<string> Triggers { get; init; }
@@ -116,7 +126,7 @@ public sealed record FoulBotConfiguration
             ContextSize = 8,
             MaxContextSizeInCharacters = 3000,
             MaxOutputTokens = 2000,
-            Temperature = 1.4f
+            Temperature = 1.3f
         };
     }
 
@@ -139,6 +149,22 @@ public sealed record FoulBotConfiguration
         return this with
         {
             Moods = moods
+        };
+    }
+
+    /// <summary>
+    /// Writing the command to the chat toggles the special mode in this chat.
+    /// </summary>
+    public FoulBotConfiguration WithSpecialMode(
+        string command, string directive, string[] replyStyleHints, string[] moods)
+    {
+        return this with
+        {
+            SpecialMode = new(
+                command,
+                directive.Replace("\r", string.Empty).Replace('\n', ' '),
+                replyStyleHints,
+                moods)
         };
     }
 

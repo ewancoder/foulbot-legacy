@@ -57,6 +57,7 @@ public static class RegistrationExtensions
             .AddChatPool<DiscordDuplicateMessageHandler>(Constants.BotTypes.Discord)
             .AddSingleton<IAllowedChatsProvider, AllowedChatsProvider>()
             .AddSingleton<IVectorStoreMapping, InMemoryVectorStoreMapping>()
+            .AddSingleton<IBotModeStore, InMemoryBotModeStore>()
             .AddTransient<IFoulAIClientFactory, FoulAIClientFactory>()                 // OpenAI
             .AddTransient<IGoogleTtsService, GoogleTtsService>()                       // Google
             .AddTransient<ITelegramBotMessengerFactory, TelegramBotMessengerFactory>() // Telegram
@@ -80,7 +81,8 @@ public static class RegistrationExtensions
             services
                 .AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisConnectionString)) // Necessary evil: Sync connect on startup.
                 .AddSingleton<IContextStore, RedisContextStore>()
-                .AddSingleton<IVectorStoreMapping, RedisVectorStoreMapping>();
+                .AddSingleton<IVectorStoreMapping, RedisVectorStoreMapping>()
+                .AddSingleton<IBotModeStore, RedisBotModeStore>();
         }
 
         return services;

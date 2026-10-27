@@ -722,7 +722,7 @@ public class FoulBotTests : Testing<FoulBot>
     private void SetupPerformRequest(ChatParticipant requester, string request, string requestResponse)
     {
         var config = CreateDefaultConfig();
-        Customize("config", config);
+        CustomizeConfig(config);
 
         _aiClient.Setup(x => x.GetCustomResponseAsync(It.Is<string>(
             r => r.Contains(config.Directive)
@@ -773,7 +773,7 @@ public class FoulBotTests : Testing<FoulBot>
     private FoulBot CreateFoulBot()
     {
         var config = CreateDefaultConfig();
-        Customize("config", config);
+        CustomizeConfig(config);
         Customize("cts", Cts);
 
         return Fixture.Create<FoulBot>();
@@ -781,8 +781,14 @@ public class FoulBotTests : Testing<FoulBot>
 
     private FoulBot CreateFoulBot(FoulBotConfiguration config)
     {
-        Customize("config", config);
+        CustomizeConfig(config);
 
         return Fixture.Create<FoulBot>();
+    }
+
+    private void CustomizeConfig(FoulBotConfiguration config)
+    {
+        Customize("config", config);
+        Customize("personality", new BotPersonality(config));
     }
 }

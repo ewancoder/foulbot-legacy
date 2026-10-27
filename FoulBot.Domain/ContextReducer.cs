@@ -10,15 +10,24 @@ public interface IContextReducer
 
 public sealed class ContextReducer : IContextReducer
 {
-    public static readonly TimeSpan MoodPeriod = TimeSpan.FromHours(6);
+    public static readonly TimeSpan MoodPeriod = TimeSpan.FromMinutes(30);
 
     private readonly FoulBotConfiguration _config;
     private readonly ISharedRandomGenerator? _random;
+    private readonly BotPersonality _personality;
+    private readonly Lock _moodLock = new();
+    private IReadOnlyList<string>? _moodPickedFrom;
+    private string? _currentMood;
+    private DateTime _moodPickedAt;
 
-    public ContextReducer(FoulBotConfiguration config, ISharedRandomGenerator? random = null)
+    public ContextReducer(
+        FoulBotConfiguration config,
+        ISharedRandomGenerator? random = null,
+        BotPersonality? personality = null)
     {
         _config = config;
         _random = random;
+        _personality = personality ?? new(config);
     }
 
     public IList<FoulMessage> Reduce(IList<FoulMessage> context)
@@ -59,21 +68,24 @@ public sealed class ContextReducer : IContextReducer
 
         List<FoulMessage> reduced =
         [
-            FoulMessage.CreateText("Directive", FoulMessageSenderType.System, new("System", null), _config.Directive, DateTime.MinValue, false, null),
+            FoulMessage.CreateText("Directive", FoulMessageSenderType.System, new("System", null), _personality.Directive, DateTime.MinValue, false, null),
             .. onlyAddressedToMe.Concat(allMessages)
             .DistinctBy(x => x.Id)
             .OrderBy(x => x.Date)
             .TakeLast(_config.ContextSize)
         ];
 
-        var hints = new List<string>();
-        if (_config.Moods.Count > 0)
-            hints.Add($"Your mood right now: {GetCurrentMood()}");
+        var moods = _personality.Moods;
+        var styleHints = _personality.ReplyStyleHints;
 
-        if (_random != null && _config.ReplyStyleHints.Count > 0)
+        var hints = new List<string>();
+        if (moods.Count > 0)
+            hints.Add($"Your mood right now: {GetCurrentMood(moods)}");
+
+        if (_random != null && styleHints.Count > 0)
         {
-            var hint = _config.ReplyStyleHints[_random.Generate(0, _config.ReplyStyleHints.Count - 1)];
-            hints.Add($"Style of your next reply, unless someone asked you to write or explain something: {hint} Swear heavily anyway.");
+            var hint = styleHints[_random.Generate(0, styleHints.Count - 1)];
+            hints.Add($"Style of your next reply, unless someone asked you to write or explain something: {hint}");
         }
 
         if (hints.Count > 0)
@@ -86,15 +98,23 @@ public sealed class ContextReducer : IContextReducer
         return reduced;
     }
 
-    // Same mood for everyone during the period, randomly shuffled between periods.
-    private string GetCurrentMood()
+    // Random mood that changes every MoodPeriod. Picked again when the moods change (bot mode was switched).
+    // Not persisted: a restart gives a new random mood.
+    private string GetCurrentMood(IReadOnlyList<string> moods)
     {
-        var period = (int)(DateTime.UtcNow.Ticks / MoodPeriod.Ticks % int.MaxValue);
-#pragma warning disable CA5394 // Do not use insecure randomness
-        var index = new Random(period).Next(_config.Moods.Count);
-#pragma warning restore CA5394 // Do not use insecure randomness
+        lock (_moodLock)
+        {
+            if (_currentMood == null
+                || !ReferenceEquals(_moodPickedFrom, moods)
+                || DateTime.UtcNow - _moodPickedAt > MoodPeriod)
+            {
+                _currentMood = moods[_random?.Generate(0, moods.Count - 1) ?? 0];
+                _moodPickedFrom = moods;
+                _moodPickedAt = DateTime.UtcNow;
+            }
 
-        return _config.Moods[index];
+            return _currentMood;
+        }
     }
 
     public bool ShouldTrigger(FoulMessage message)

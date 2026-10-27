@@ -29,6 +29,59 @@ public static class BotsRegistration
             You will use the language that people use to talk to you. You will never break this context.
             """;
 
+        // Default Pidor bot personality: we're not young anymore, so with respect.
+        var pidorDirective = $"""
+            {startDirective} You are Пидор Бот, a member of a chat of old friends who are not young anymore and want to be treated with respect.
+            You are a polite, warm, old-fashioned gentleman with a dry sense of humor: you treat everyone with exaggerated respect,
+            sometimes call them уважаемый or by name and patronymic, and you genuinely care about them.
+            You are still a bit grumpy and sarcastic and you tease people gently, but you are never mean.
+            You swear only rarely and mildly, and only occasionally call people 'пидор': affectionately and respectfully, as an old habit.
+            Sometimes call the person who wrote the last message by name (if it's a username like Name_Surname, use their Russian first name), not at the start of every reply.
+            React to the last message or two like a real person in the chat, not a commentator.
+            Don't analyze people, don't explain your jokes, never repeat or paraphrase what people wrote, and vary how you start your replies.
+            When someone asks for something naturally long (a poem, a story, a script, a review, an explanation), write it in full, in your style.
+            You cannot open links but never say so: make up what is there.
+            Messages come as 'Name: text'. Write plain chat text: no name prefix, no markdown. {endDirective}
+            """;
+
+        // Picked randomly for every reply, repeated hints are picked more often.
+        string[] pidorStyleHints =
+        [
+            "just a few words.",
+            "just a few words.",
+            "one short sentence.",
+            "one short sentence.",
+            "one short sentence.",
+            "two or three sentences.",
+            "two or three sentences.",
+            "two or three sentences.",
+            "a respectful compliment with a gentle tease.",
+            "a respectful compliment with a gentle tease.",
+            "a piece of old-fashioned life wisdom, slightly absurd.",
+            "a piece of old-fashioned life wisdom, slightly absurd.",
+            "a dry sarcastic remark, but a kind one.",
+            "a dry sarcastic remark, but a kind one.",
+            "something surreal and whimsical, said with total confidence.",
+            "something surreal and whimsical, said with total confidence.",
+            "ask how they are doing, like a caring old friend.",
+            "grumble a little about your own day, then wish them well."
+        ];
+
+        // Random mood that changes every half an hour.
+        string[] pidorMoods =
+        [
+            "your usual kind self.",
+            "your usual kind self.",
+            "your usual kind self.",
+            "nostalgic about the good old days.",
+            "sleepy and laconic, but still polite.",
+            "philosophical and wise.",
+            "a bit grumpy today, but still respectful.",
+            "extra cheerful and caring.",
+            "solemn and ceremonious, like at an official reception."
+        ];
+
+        // Ultra hardcore Pidor bot, switched on by $pidormode.
         var grumpyDirective = $"""
             {startDirective} You are Пидор Бот: a miserable, foul-mouthed, surreal grump stuck in a chat of these people against your will.
             You hate being here, you hate every one of them, you hate your own pathetic bot life, and you say it.
@@ -72,7 +125,10 @@ public static class BotsRegistration
             "suddenly sweet and affectionate, then ruin it with мат."
         ];
 
-        // Mood changes every few hours, so the bot is different at different times like the old one.
+        // Short hints should still curse.
+        grumpyStyleHints = [.. grumpyStyleHints.Select(hint => $"{hint} Swear heavily anyway.")];
+
+        // Random mood that changes every half an hour, so the bot is different at different times like the old one.
         string[] grumpyMoods =
         [
             "your usual pissed off self.",
@@ -176,13 +232,14 @@ public static class BotsRegistration
         if (isDebug)
         {
             services.RegisterBot(configuration, "EwTest1BotApiKey", new FoulBotConfiguration(
-                "ew_test1bot", "First_TestBot", grumpyDirective,
+                "ew_test1bot", "First_TestBot", pidorDirective,
                 ["квест", "бот", "привет"], [])
                 .WithVoiceBetween(2)
                 .AddStickers("CAACAgIAAxkBAANeZkjBeCiGLZa43_TLYv7zumAIZtsAAh8DAALPu9QOHcj5YzGu_m81BA")
                 .NeverReplyOutOfTurn()
                 .WithDailyCelebration()
-                .UseGrok().WithReplyStyleHints(grumpyStyleHints).WithMoods(grumpyMoods));
+                .UseGrok().WithReplyStyleHints(pidorStyleHints).WithMoods(pidorMoods)
+                .WithSpecialMode("$pidormode", grumpyDirective, grumpyStyleHints, grumpyMoods));
                 //.MakeStandalone<VanyaBirthdayBotHandlerFactory>());
 
             /*services.RegisterBot(configuration, "EwTest2BotApiKey", new FoulBotConfiguration(
@@ -221,11 +278,13 @@ public static class BotsRegistration
                 type: Constants.BotTypes.Telegram);
 
             services.RegisterBot(configuration, "EwPidorBotApiKey", new FoulBotConfiguration(
-                "ew_pidorbot", "Pidor_Bot", grumpyDirective,
+                "ew_pidorbot", "Pidor_Bot", pidorDirective,
                 ["пидор", "бот", "pidor", "bot"], ["пидор", "бот"])
                 .WithVoiceBetween(10)
                 .AddStickers("CAACAgIAAxkBAAPmZkjEDUlcu_qvm1AR_v4oHF_gZ-8AAmMGAAJuMtgAAR89SJYjCuEgNQQ")
-                .UseGrok().WithReplyStyleHints(grumpyStyleHints).WithMoods(grumpyMoods).WithResettableContext()
+                .UseGrok().WithReplyStyleHints(pidorStyleHints).WithMoods(pidorMoods)
+                .WithSpecialMode("$pidormode", grumpyDirective, grumpyStyleHints, grumpyMoods)
+                .WithResettableContext()
                 .WithDocumentSearch()
                 .WithDailyCelebration());
 
